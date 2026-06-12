@@ -1,0 +1,1 @@
+window.REPORTAR_API_BASE_URL = "";

@@ -62,6 +62,9 @@ class Store:
                     status TEXT NOT NULL,
                     output_json TEXT,
                     provider_json TEXT,
+                    artifact_path TEXT,
+                    artifact_name TEXT,
+                    artifact_size INTEGER,
                     locked_by TEXT,
                     locked_at TEXT,
                     created_at TEXT NOT NULL,
@@ -77,6 +80,21 @@ class Store:
                 );
                 """
             )
+            self._ensure_job_artifact_columns(connection)
+
+    def _ensure_job_artifact_columns(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+        }
+        migrations = {
+            "artifact_path": "ALTER TABLE jobs ADD COLUMN artifact_path TEXT",
+            "artifact_name": "ALTER TABLE jobs ADD COLUMN artifact_name TEXT",
+            "artifact_size": "ALTER TABLE jobs ADD COLUMN artifact_size INTEGER",
+        }
+        for column, statement in migrations.items():
+            if column not in columns:
+                connection.execute(statement)
 
     def create_worker_token(self, name: str) -> str:
         token = f"rw_{secrets.token_urlsafe(32)}"
@@ -191,6 +209,40 @@ class Store:
                 ),
             )
             self._event(connection, job_id, status, f"انتقلت المهمة إلى {status}", {})
+
+    def attach_artifact(
+        self,
+        job_id: str,
+        path: str,
+        name: str,
+        size: int,
+        output: dict[str, Any],
+        provider: dict[str, Any],
+    ) -> None:
+        with self.connection() as connection:
+            connection.execute(
+                """
+                UPDATE jobs SET
+                    status='completed',
+                    output_json=?,
+                    provider_json=?,
+                    artifact_path=?,
+                    artifact_name=?,
+                    artifact_size=?,
+                    updated_at=?
+                WHERE id=?
+                """,
+                (
+                    json.dumps(output, ensure_ascii=False),
+                    json.dumps(provider, ensure_ascii=False),
+                    path,
+                    name,
+                    size,
+                    now(),
+                    job_id,
+                ),
+            )
+            self._event(connection, job_id, "completed", "تم إنشاء ملف PDF", {})
 
     def get_job(self, job_id: str) -> dict[str, Any]:
         with self.connection() as connection:

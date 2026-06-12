@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
 };
 
 const PUBLIC_API_BASE_URL = "";
+const POLLABLE_STATUSES = new Set(["مرسل للمعالجة", "قيد الانتظار", "قيد المعالجة", "جاري بناء PDF"]);
 
 const demoText = `تقرير موجز عن جودة تجربة العملاء في الربع الثاني.
 
@@ -74,6 +75,7 @@ function renderReports() {
           </span>
           <span>${escapeHtml(report.summary)}</span>
           ${report.remoteId ? `<span class="report-meta">رقم الطلب: ${escapeHtml(report.remoteId)}</span>` : ""}
+          ${report.downloadUrl ? `<a class="download-link" href="${escapeAttribute(report.downloadUrl)}" target="_blank" rel="noopener">تحميل PDF</a>` : ""}
         </article>
       `
     )
@@ -152,6 +154,70 @@ async function submitToApi(payload) {
   return response.json();
 }
 
+async function fetchJobStatus(jobId) {
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl || !jobId) return null;
+  const response = await fetch(`${baseUrl}/api/app/jobs/${encodeURIComponent(jobId)}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+function publicDownloadUrl(downloadUrl) {
+  if (!downloadUrl) return "";
+  if (/^https?:\/\//i.test(downloadUrl)) return downloadUrl;
+  return `${apiBaseUrl()}${downloadUrl}`;
+}
+
+function updateReportFromJob(job) {
+  const reports = currentReports();
+  const index = reports.findIndex((report) => report.remoteId === job.id);
+  if (index < 0) return;
+
+  const statusMap = {
+    queued: "قيد الانتظار",
+    claimed: "قيد المعالجة",
+    analyzing: "قيد المعالجة",
+    rendering: "جاري بناء PDF",
+    completed: "جاهز للتحميل",
+    waiting_for_user: "يحتاج مراجعة",
+    failed: "تعذر المعالجة"
+  };
+  reports[index] = {
+    ...reports[index],
+    status: statusMap[job.status] || job.status,
+    downloadUrl: publicDownloadUrl(job.download_url),
+    fileName: job.file_name || reports[index].fileName || ""
+  };
+  writeJson(STORAGE_KEYS.reports, reports);
+  renderReports();
+}
+
+async function pollJob(jobId, remainingAttempts = 120) {
+  if (!apiBaseUrl() || !jobId || remainingAttempts <= 0) return;
+  try {
+    const response = await fetchJobStatus(jobId);
+    const job = response?.job;
+    if (!job) return;
+    updateReportFromJob(job);
+    if (!["completed", "failed", "waiting_for_user"].includes(job.status)) {
+      window.setTimeout(() => pollJob(jobId, remainingAttempts - 1), 5000);
+    }
+  } catch {
+    window.setTimeout(() => pollJob(jobId, remainingAttempts - 1), 8000);
+  }
+}
+
+function resumePolling() {
+  if (!apiBaseUrl()) return;
+  for (const report of currentReports()) {
+    if (report.remoteId && !report.downloadUrl && POLLABLE_STATUSES.has(report.status)) {
+      pollJob(report.remoteId, 60);
+    }
+  }
+}
+
 $("#fillDemo").addEventListener("click", () => {
   fillDemoReport();
 });
@@ -199,6 +265,7 @@ $("#reportForm").addEventListener("submit", async (event) => {
     if (remote?.job?.id) {
       remoteId = remote.job.id;
       status = "مرسل للمعالجة";
+      window.setTimeout(() => pollJob(remoteId), 1000);
     }
   } catch (error) {
     status = "محفوظ محليًا، تعذر الإرسال";
@@ -265,3 +332,4 @@ if ("serviceWorker" in navigator) {
 loadAppState();
 renderIdentity();
 renderReports();
+resumePolling();

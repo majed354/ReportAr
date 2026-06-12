@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 from .config import Settings
 from .control_plane import ControlPlaneClient
 from .preflight import automatic_setup_brief
+from .renderer import render_report
 from .report_pipeline import generate_report
 
 
@@ -120,7 +122,16 @@ class ReportWorker:
             if result.parsed.get("status") == "needs_user_input":
                 self.client.submit_questions(job_id, result.parsed, provider)
             else:
-                self.client.submit_analysis(job_id, result.parsed, provider)
+                self.client.event(job_id, "rendering", "بدأ بناء ملف PDF")
+                with tempfile.TemporaryDirectory(prefix=f"reportar-{job_id}-") as folder:
+                    pdf_path = render_report(result.parsed, Path(folder))
+                    self.client.submit_artifact(
+                        job_id,
+                        result.parsed,
+                        provider,
+                        pdf_path.read_bytes(),
+                        pdf_path.name,
+                    )
         except Exception as error:
             LOGGER.exception("Job %s failed", job_id)
             self.client.fail(job_id, str(error), retryable=True)

@@ -3,6 +3,31 @@ info:
   title: Arabic Report Worker Control Plane
   version: 0.1.0
 paths:
+  /api/app/jobs:
+    post:
+      summary: Create a public customer report job
+      responses:
+        "200": {description: Public job created}
+  /api/app/jobs/{jobId}:
+    get:
+      summary: Read public job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Public job status}
+  /api/app/jobs/{jobId}/pdf:
+    get:
+      summary: Download completed PDF
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: PDF file}
   /api/worker/heartbeat:
     post:
       summary: Register worker availability and capabilities
@@ -49,6 +74,17 @@ paths:
           schema: {type: string}
       responses:
         "200": {description: Analysis saved and render job queued}
+  /api/worker/jobs/{jobId}/artifact:
+    post:
+      summary: Submit completed PDF artifact
+      security: [{workerToken: []}]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: PDF artifact saved}
   /api/worker/jobs/{jobId}/fail:
     post:
       summary: Mark a job failed without exposing secrets

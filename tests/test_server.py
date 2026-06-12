@@ -1,3 +1,4 @@
+import base64
 import os
 import tempfile
 import unittest
@@ -12,6 +13,7 @@ class ServerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         os.environ["CONTROL_PLANE_DB"] = str(Path(self.temp.name) / "control.sqlite3")
+        os.environ["CONTROL_PLANE_ARTIFACT_DIR"] = str(Path(self.temp.name) / "artifacts")
         os.environ["CONTROL_PLANE_ADMIN_TOKEN"] = "admin-test"
         store.cache_clear()
         self.client = TestClient(app)
@@ -71,6 +73,47 @@ class ServerTests(unittest.TestCase):
         ).json()["job"]
         self.assertEqual(saved["status"], "validated")
         self.assertEqual(saved["provider"]["name"], "local")
+
+    def test_public_app_job_can_be_completed_with_pdf(self):
+        created = self.client.post(
+            "/api/app/jobs",
+            json={
+                "report_text": "تقرير تجريبي عن رضا العملاء ونتائج المؤشرات.",
+                "mode": "fast",
+                "visual_theme": "data-dashboard",
+                "chart_policy": "required",
+            },
+        )
+        self.assertEqual(created.status_code, 200)
+        public_job = created.json()["job"]
+        self.assertEqual(public_job["status"], "queued")
+        self.assertNotIn("report_text", public_job)
+
+        claimed = self.client.post(
+            "/api/worker/jobs/claim",
+            headers=self.worker,
+            json={"worker_id": "worker-1"},
+        ).json()["job"]
+        self.assertEqual(claimed["id"], public_job["id"])
+        pdf_bytes = b"%PDF-1.4\n% ReportAr test\n"
+        artifact = self.client.post(
+            f"/api/worker/jobs/{public_job['id']}/artifact",
+            headers=self.worker,
+            json={
+                "output": {"status": "ready_to_render"},
+                "provider": {"name": "local", "model": "gemma4:e4b"},
+                "file_name": "report.pdf",
+                "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+            },
+        )
+        self.assertEqual(artifact.status_code, 200)
+
+        status = self.client.get(f"/api/app/jobs/{public_job['id']}").json()["job"]
+        self.assertEqual(status["status"], "completed")
+        self.assertEqual(status["download_url"], f"/api/app/jobs/{public_job['id']}/pdf")
+        downloaded = self.client.get(status["download_url"])
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(downloaded.content, pdf_bytes)
 
     def test_allowed_origins_are_parsed_for_frontend_cors(self):
         self.assertEqual(

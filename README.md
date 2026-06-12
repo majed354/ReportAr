@@ -136,10 +136,28 @@ uvicorn report_worker.server:app --host 0.0.0.0 --port 8080
 CONTROL_PLANE_ALLOWED_ORIGINS=https://your-site.netlify.app
 ```
 
+ثم ضع رابط الخادم في:
+
+```text
+webapp/config.js
+```
+
+مثال:
+
+```js
+window.REPORTAR_API_BASE_URL = "https://api.your-domain.com";
+```
+
 العامل المحلي يسحب المهام من الخادم بدل أن يتصل الخادم بجهازك مباشرة:
 
 ```bash
 python -m report_worker.cli run
+```
+
+بعد ربط الواجهة بالخادم سيصبح المسار:
+
+```text
+واجهة Netlify → API الخادم → العامل المحلي → PDF → رابط تحميل في الواجهة
 ```
 
 عقد الاتصال موثق في:

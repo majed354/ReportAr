@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from typing import Any
 
 from .http import request_json
@@ -59,6 +60,25 @@ class ControlPlaneClient:
             "POST",
             f"/api/worker/jobs/{job_id}/analysis",
             {"output": output, "provider": provider},
+        )
+
+    def submit_artifact(
+        self,
+        job_id: str,
+        output: dict[str, Any],
+        provider: dict[str, Any],
+        pdf_bytes: bytes,
+        file_name: str = "report.pdf",
+    ) -> dict[str, Any]:
+        return self._request(
+            "POST",
+            f"/api/worker/jobs/{job_id}/artifact",
+            {
+                "output": output,
+                "provider": provider,
+                "file_name": file_name,
+                "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+            },
         )
 
     def fail(self, job_id: str, reason: str, retryable: bool) -> dict[str, Any]:
