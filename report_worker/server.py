@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .store import Store
@@ -72,7 +73,21 @@ def require_admin(authorization: Optional[str] = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid admin token")
 
 
+def parse_allowed_origins(value: str) -> list[str]:
+    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
+
+
 app = FastAPI(title="Arabic Report Control Plane", version="0.1.0")
+
+ALLOWED_ORIGINS = parse_allowed_origins(os.getenv("CONTROL_PLANE_ALLOWED_ORIGINS", ""))
+if ALLOWED_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 
 @app.get("/health")

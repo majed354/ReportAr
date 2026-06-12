@@ -1,8 +1,9 @@
 const STORAGE_KEYS = {
-  settings: "reportar.settings",
   identity: "reportar.identity",
   reports: "reportar.reports"
 };
+
+const PUBLIC_API_BASE_URL = "";
 
 const demoText = `تقرير موجز عن جودة تجربة العملاء في الربع الثاني.
 
@@ -29,12 +30,12 @@ function normalizeApiUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
-function currentSettings() {
-  return readJson(STORAGE_KEYS.settings, { apiBaseUrl: "", devToken: "" });
-}
-
 function currentReports() {
   return readJson(STORAGE_KEYS.reports, []);
+}
+
+function apiBaseUrl() {
+  return normalizeApiUrl(window.REPORTAR_API_BASE_URL || PUBLIC_API_BASE_URL);
 }
 
 function setApiStatus(status, message) {
@@ -72,7 +73,7 @@ function renderReports() {
             ${escapeHtml(report.createdAt)} · ${escapeHtml(report.modeLabel)} · ${escapeHtml(report.status)}
           </span>
           <span>${escapeHtml(report.summary)}</span>
-          ${report.remoteId ? `<span class="report-meta">رقم المهمة على الخادم: ${escapeHtml(report.remoteId)}</span>` : ""}
+          ${report.remoteId ? `<span class="report-meta">رقم الطلب: ${escapeHtml(report.remoteId)}</span>` : ""}
         </article>
       `
     )
@@ -95,11 +96,21 @@ function renderIdentity() {
   `;
 }
 
-function loadSettingsForm() {
-  const settings = currentSettings();
-  $("#settingsForm").apiBaseUrl.value = settings.apiBaseUrl || "";
-  $("#settingsForm").devToken.value = settings.devToken || "";
-  setApiStatus("", settings.apiBaseUrl ? "API محفوظ، لم يختبر بعد" : "واجهة جاهزة للنشر");
+function updateSubmitMode() {
+  const connected = Boolean(apiBaseUrl());
+  const button = $("#submitButton");
+  const banner = $("#modeBanner");
+
+  button.textContent = connected ? "إرسال الطلب" : "حفظ الطلب كمعاينة";
+  banner.classList.toggle("connected", connected);
+  banner.textContent = connected
+    ? "تم تفعيل استقبال الطلبات. سيتم إرسال الطلب للمعالجة."
+    : "وضع المعاينة مفعل الآن. سيحفظ الطلب داخل المتصفح إلى أن يتم تفعيل استقبال الطلبات.";
+}
+
+function loadAppState() {
+  setApiStatus("", "واجهة العملاء");
+  updateSubmitMode();
 }
 
 function escapeHtml(value) {
@@ -116,22 +127,20 @@ function escapeAttribute(value) {
 }
 
 async function submitToApi(payload) {
-  const settings = currentSettings();
-  const apiBaseUrl = normalizeApiUrl(settings.apiBaseUrl);
-  if (!apiBaseUrl) return null;
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl) return null;
 
-  const response = await fetch(`${apiBaseUrl}/api/admin/jobs`, {
+  const response = await fetch(`${baseUrl}/api/app/jobs`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      ...(settings.devToken ? { Authorization: `Bearer ${settings.devToken}` } : {})
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
       report_text: payload.reportText,
       instructions: payload.instructions,
       mode: payload.mode,
-      ai_provider: payload.provider || null,
-      fallback_allowed: true
+      visual_theme: payload.theme,
+      chart_policy: payload.charts
     })
   });
 
@@ -144,15 +153,23 @@ async function submitToApi(payload) {
 }
 
 $("#fillDemo").addEventListener("click", () => {
+  fillDemoReport();
+});
+
+$("#heroDemo").addEventListener("click", () => {
+  fillDemoReport();
+  document.querySelector("#new").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+function fillDemoReport() {
   const form = $("#reportForm");
   form.title.value = "تقرير جودة تجربة العملاء";
   form.reportText.value = demoText;
   form.mode.value = "fast";
-  form.provider.value = "local";
   form.theme.value = "data-dashboard";
   form.charts.value = "required";
   setNotice("تم وضع مثال جاهز. يمكنك تعديله ثم إرسال الطلب.");
-});
+}
 
 $("#reportForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -161,7 +178,6 @@ $("#reportForm").addEventListener("submit", async (event) => {
     title: form.title.value.trim(),
     reportText: form.reportText.value.trim(),
     mode: form.mode.value,
-    provider: form.provider.value,
     theme: form.theme.value,
     charts: form.charts.value,
     files: fileNames(form.files),
@@ -174,6 +190,7 @@ $("#reportForm").addEventListener("submit", async (event) => {
   }
 
   setNotice("جارٍ إنشاء الطلب...");
+  const apiConnected = Boolean(apiBaseUrl());
   let remoteId = "";
   let status = "محفوظ محليًا";
 
@@ -181,11 +198,11 @@ $("#reportForm").addEventListener("submit", async (event) => {
     const remote = await submitToApi(payload);
     if (remote?.job?.id) {
       remoteId = remote.job.id;
-      status = "مرسل للخادم";
+      status = "مرسل للمعالجة";
     }
   } catch (error) {
-    status = "محفوظ محليًا، تعذر إرسال الخادم";
-    setNotice(`تم حفظ الطلب محليًا، لكن الاتصال بالخادم تعذر: ${error.message}`, true);
+    status = "محفوظ محليًا، تعذر الإرسال";
+    setNotice(`تم حفظ الطلب محليًا، لكن إرساله تعذر: ${error.message}`, true);
   }
 
   const reports = currentReports();
@@ -202,10 +219,10 @@ $("#reportForm").addEventListener("submit", async (event) => {
   writeJson(STORAGE_KEYS.reports, reports.slice(0, 20));
   renderReports();
 
-  if (status === "مرسل للخادم") {
-    setNotice(`تم إرسال الطلب للخادم بنجاح. رقم المهمة: ${remoteId}`);
-  } else if (!normalizeApiUrl(currentSettings().apiBaseUrl)) {
-    setNotice("تم حفظ الطلب محليًا. اربط عنوان API في الإعدادات لإرسال الطلبات للخادم.");
+  if (status === "مرسل للمعالجة") {
+    setNotice(`تم إرسال الطلب بنجاح. رقم الطلب: ${remoteId}`);
+  } else if (!apiConnected) {
+    setNotice("تم حفظ الطلب كمعاينة داخل المتصفح فقط. بعد تفعيل استقبال الطلبات سيصل للمعالجة وإنتاج PDF.");
   }
 });
 
@@ -220,35 +237,6 @@ $("#identityForm").addEventListener("submit", (event) => {
   };
   writeJson(STORAGE_KEYS.identity, identity);
   renderIdentity();
-});
-
-$("#settingsForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  writeJson(STORAGE_KEYS.settings, {
-    apiBaseUrl: normalizeApiUrl(form.apiBaseUrl.value),
-    devToken: form.devToken.value.trim()
-  });
-  loadSettingsForm();
-  setApiStatus("", "تم حفظ إعداد API");
-});
-
-$("#testApi").addEventListener("click", async () => {
-  const settings = currentSettings();
-  const apiBaseUrl = normalizeApiUrl(settings.apiBaseUrl);
-  if (!apiBaseUrl) {
-    setApiStatus("bad", "أدخل عنوان API أولًا");
-    return;
-  }
-
-  setApiStatus("", "جارٍ اختبار الاتصال...");
-  try {
-    const response = await fetch(`${apiBaseUrl}/health`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    setApiStatus("ok", "الاتصال بالخادم ناجح");
-  } catch (error) {
-    setApiStatus("bad", `تعذر الاتصال: ${error.message}`);
-  }
 });
 
 let deferredInstallPrompt = null;
@@ -274,6 +262,6 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-loadSettingsForm();
+loadAppState();
 renderIdentity();
 renderReports();

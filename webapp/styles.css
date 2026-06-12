@@ -303,8 +303,7 @@ main {
 }
 
 .report-form,
-.identity-form,
-.settings-form {
+.identity-form {
   display: grid;
   gap: 16px;
 }
@@ -353,6 +352,7 @@ textarea:focus {
 }
 
 .notice,
+.mode-banner,
 .identity-preview,
 .deploy-box,
 .report-item {
@@ -365,6 +365,18 @@ textarea:focus {
   padding: 15px 18px;
   margin-top: 18px;
   color: #115e59;
+}
+
+.mode-banner {
+  padding: 15px 18px;
+  margin-bottom: 18px;
+  color: #7c2d12;
+  background: #fff7ed;
+}
+
+.mode-banner.connected {
+  color: #115e59;
+  background: #ecfdf5;
 }
 
 .notice.error {

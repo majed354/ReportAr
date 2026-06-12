@@ -10,7 +10,7 @@
   <title>ReportAr | منصة التقارير العربية</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=2">
 </head>
 <body>
   <div class="app-shell">
@@ -24,7 +24,6 @@
           <a href="#new">تقرير جديد</a>
           <a href="#identity">الهوية</a>
           <a href="#reports">التقارير</a>
-          <a href="#settings">الإعدادات</a>
         </div>
         <button class="install-button" id="installButton" type="button" hidden>تثبيت التطبيق</button>
       </nav>
@@ -39,19 +38,19 @@
           </p>
           <div class="hero-actions">
             <a class="primary-action" href="#new">ابدأ تقريرًا جديدًا</a>
-            <a class="secondary-action" href="#settings">ربط الخادم</a>
+            <button class="secondary-action" type="button" id="heroDemo">تجربة نموذجية</button>
           </div>
         </div>
         <aside class="hero-card" aria-label="ملخص حالة المنصة">
           <div class="status-dot" id="apiStatusDot"></div>
-          <span id="apiStatusText">واجهة جاهزة للنشر</span>
-          <strong>البناء المقترح</strong>
-          <p>Netlify للواجهة، خادمك للحسابات والطابور، وجهازك المحلي للنموذج وPDF.</p>
+          <span id="apiStatusText">واجهة العملاء</span>
+          <strong>تجربة مبسطة</strong>
+          <p>المستخدم يرسل المحتوى والهوية المطلوبة، ثم تتم المعالجة خلف الكواليس حتى استلام PDF.</p>
           <div class="mini-steps">
-            <span>واجهة PWA</span>
-            <span>API</span>
-            <span>عامل محلي</span>
-            <span>PDF</span>
+            <span>إدخال التقرير</span>
+            <span>اختيار الهوية</span>
+            <span>مراجعة الطلب</span>
+            <span>استلام PDF</span>
           </div>
         </aside>
       </section>
@@ -71,8 +70,8 @@
         </article>
         <article class="feature-card">
           <span class="feature-icon">03</span>
-          <h2>محرك محلي</h2>
-          <p>يبقى تشغيل النموذج وبناء LaTeX على جهازك أو خادمك الخاص.</p>
+          <h2>معالجة منظمة</h2>
+          <p>تظهر للعميل تجربة بسيطة، بينما تدار خطوات الإنتاج والمراجعة من لوحة الإدارة.</p>
         </article>
       </section>
 
@@ -80,7 +79,10 @@
         <div class="section-heading">
           <p class="eyebrow">طلب تقرير</p>
           <h2>أنشئ مهمة تقرير</h2>
-          <p>هذه الواجهة تحفظ الطلب محليًا الآن، وترسله إلى الخادم عند ضبط عنوان API في الإعدادات.</p>
+          <p>أدخل محتوى التقرير والهوية المطلوبة، ثم احفظ الطلب للمعالجة.</p>
+        </div>
+        <div class="mode-banner" id="modeBanner">
+          وضع المعاينة مفعل الآن. سيحفظ الطلب داخل المتصفح إلى أن يتم تفعيل استقبال الطلبات.
         </div>
         <form class="report-form" id="reportForm">
           <label>
@@ -97,14 +99,6 @@
               <select name="mode">
                 <option value="fast">المسار السريع</option>
                 <option value="guided">المسار الموجه</option>
-              </select>
-            </label>
-            <label>
-              النموذج المفضل
-              <select name="provider">
-                <option value="">اختيار تلقائي</option>
-                <option value="local">النموذج المحلي</option>
-                <option value="gemini">Gemini</option>
               </select>
             </label>
             <label>
@@ -130,10 +124,10 @@
           <label>
             ملفات مرفقة
             <input name="files" type="file" multiple accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.webp">
-            <span class="hint">في النسخة المنشورة سترفع الملفات للخادم. في المعاينة تحفظ أسماء الملفات فقط.</span>
+            <span class="hint">في النسخة المنشورة سترفع الملفات مع الطلب. في المعاينة تحفظ أسماء الملفات فقط.</span>
           </label>
           <div class="actions-row">
-            <button class="primary-action" type="submit">إرسال الطلب</button>
+            <button class="primary-action" id="submitButton" type="submit">حفظ الطلب كمعاينة</button>
             <button class="secondary-action" type="button" id="fillDemo">تجربة نموذجية</button>
           </div>
         </form>
@@ -144,7 +138,7 @@
         <div class="section-heading">
           <p class="eyebrow">هوية العميل</p>
           <h2>احفظ نمطك الافتراضي</h2>
-          <p>الهوية هنا مبدئية للواجهة. لاحقًا تحفظ في حساب المستخدم على الخادم.</p>
+          <p>الهوية هنا مبدئية للواجهة. لاحقًا تحفظ في حساب المستخدم.</p>
         </div>
         <form class="identity-form" id="identityForm">
           <div class="form-grid">
@@ -179,36 +173,8 @@
         </div>
         <div class="reports-list" id="reportsList"></div>
       </section>
-
-      <section class="panel" id="settings">
-        <div class="section-heading">
-          <p class="eyebrow">الربط</p>
-          <h2>إعداد الخادم والنشر</h2>
-          <p>لا تحفظ مفاتيح Gemini أو Telegram في هذه الواجهة العامة. مكانها لوحة التحكم المحلية أو الخادم.</p>
-        </div>
-        <form class="settings-form" id="settingsForm">
-          <label>
-            عنوان API
-            <input name="apiBaseUrl" inputmode="url" placeholder="مثال: https://api.reportar.com">
-          </label>
-          <label>
-            رمز جلسة تطوير مؤقت
-            <input name="devToken" type="password" autocomplete="off" placeholder="يستخدم للتجربة فقط وليس للإنتاج">
-            <span class="hint">في النسخة التجارية يستبدل هذا بتسجيل دخول حقيقي، لا برمز إداري داخل المتصفح.</span>
-          </label>
-          <div class="actions-row">
-            <button class="primary-action" type="submit">حفظ الإعدادات</button>
-            <button class="secondary-action" type="button" id="testApi">اختبار الاتصال</button>
-          </div>
-        </form>
-        <div class="deploy-box">
-          <h3>إعداد Netlify</h3>
-          <p>المستودع جاهز للنشر من GitHub. إعداد النشر: publish = <code>webapp</code> بدون أمر بناء.</p>
-          <p>لا تضع مفاتيح Telegram أو Gemini في Netlify لهذه الواجهة. المفاتيح تبقى في لوحة التحكم المحلية أو في الخادم الخلفي عند تجهيزه.</p>
-        </div>
-      </section>
     </main>
   </div>
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=2" defer></script>
 </body>
 </html>

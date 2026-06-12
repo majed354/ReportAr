@@ -130,6 +130,12 @@ python -m unittest discover -s tests -v
 uvicorn report_worker.server:app --host 0.0.0.0 --port 8080
 ```
 
+إذا أردت أن ترسل واجهة Netlify الطلبات إلى هذا الخادم، اضبط أصل الواجهة في:
+
+```bash
+CONTROL_PLANE_ALLOWED_ORIGINS=https://your-site.netlify.app
+```
+
 العامل المحلي يسحب المهام من الخادم بدل أن يتصل الخادم بجهازك مباشرة:
 
 ```bash
@@ -168,6 +174,9 @@ netlify.toml
 
 لا تضع مفاتيح Telegram أو Gemini في Netlify لهذه الواجهة. المفاتيح تبقى في
 لوحة التحكم المحلية أو في الخادم الخلفي عند نقله للإنتاج.
+
+واجهة Netlify مخصصة للعملاء فقط؛ لا تعرض اختيار النموذج أو مفاتيح Gemini أو
+Telegram أو إعدادات العامل المحلي. هذه الخيارات تبقى في لوحة التحكم الخاصة.
 
 تفاصيل إضافية في:
 

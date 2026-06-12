@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from report_worker.server import app, store
+from report_worker.server import app, parse_allowed_origins, store
 
 
 class ServerTests(unittest.TestCase):
@@ -71,6 +71,12 @@ class ServerTests(unittest.TestCase):
         ).json()["job"]
         self.assertEqual(saved["status"], "validated")
         self.assertEqual(saved["provider"]["name"], "local")
+
+    def test_allowed_origins_are_parsed_for_frontend_cors(self):
+        self.assertEqual(
+            parse_allowed_origins(" https://reportar.netlify.app/, http://127.0.0.1:8777 "),
+            ["https://reportar.netlify.app", "http://127.0.0.1:8777"],
+        )
 
 
 if __name__ == "__main__":
