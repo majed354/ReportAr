@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+!.env.example
+data
+qa-results
+outputs
+reports
+tmp
+__pycache__
+*.pyc
+*.aux
+*.log
+*.out
+*.pdf
+*.tex
+.DS_Store

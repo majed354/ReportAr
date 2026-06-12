@@ -1,0 +1,7 @@
+# The worker itself uses the standard library only.
+# The optional deployable control-plane API requires:
+fastapi==0.115.6
+uvicorn==0.34.0
+python-telegram-bot==21.10
+pypdf==5.4.0
+python-docx==1.1.2

@@ -1,0 +1,68 @@
+openapi: 3.1.0
+info:
+  title: Arabic Report Worker Control Plane
+  version: 0.1.0
+paths:
+  /api/worker/heartbeat:
+    post:
+      summary: Register worker availability and capabilities
+      security: [{workerToken: []}]
+      responses:
+        "200": {description: Heartbeat accepted}
+  /api/worker/jobs/claim:
+    post:
+      summary: Atomically claim one queued job
+      description: Must lock the job so two workers cannot process it.
+      security: [{workerToken: []}]
+      responses:
+        "200": {description: Claimed job or null}
+  /api/worker/jobs/{jobId}/events:
+    post:
+      summary: Append a safe report status event
+      security: [{workerToken: []}]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Event saved}
+  /api/worker/jobs/{jobId}/questions:
+    post:
+      summary: Submit guided questions and set waiting_for_user
+      security: [{workerToken: []}]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Questions saved}
+  /api/worker/jobs/{jobId}/analysis:
+    post:
+      summary: Submit validated structured analysis for local rendering
+      security: [{workerToken: []}]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Analysis saved and render job queued}
+  /api/worker/jobs/{jobId}/fail:
+    post:
+      summary: Mark a job failed without exposing secrets
+      security: [{workerToken: []}]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Failure recorded}
+components:
+  securitySchemes:
+    workerToken:
+      type: http
+      scheme: bearer
+      description: Revocable worker token. Store only its hash on the server.

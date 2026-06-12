@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>لوحة تحكم بوت التقارير</title>
+  <style>
+    :root{--navy:#172554;--teal:#0f766e;--bg:#f6f8fb;--line:#dbe4ee;--muted:#64748b}
+    *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:#13213c}
+    header{background:linear-gradient(135deg,var(--navy),var(--teal));color:white;padding:34px 20px}
+    header div,main{max-width:980px;margin:auto}h1{margin:0 0 8px}.sub{opacity:.85}
+    main{padding:24px 16px 50px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+    section{background:white;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 8px 25px #1e293b0d}
+    h2{font-size:19px;margin-top:0;color:var(--navy)}label{display:block;margin:14px 0 6px;font-weight:bold;font-size:14px}
+    input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:white;font-size:15px}
+    button{border:0;border-radius:10px;padding:12px 17px;background:var(--teal);color:white;font-weight:bold;cursor:pointer;margin-top:14px}
+    button.alt{background:var(--navy)}button:disabled{opacity:.55}.status{margin-top:12px;padding:11px;border-radius:10px;background:#eef6f5;color:#115e59;min-height:42px}
+    .secret{font-size:13px;color:var(--muted);margin-top:5px}.wide{grid-column:1/-1}.actions{display:flex;gap:10px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+<header><div><h1>لوحة تحكم بوت التقارير</h1><div class="sub">إعداد تيليغرام، النماذج المحلية، وGemini API من مكان واحد</div></div></header>
+<main>
+  <form id="settings"><div class="grid">
+    <section>
+      <h2>تيليغرام</h2>
+      <label>Bot Token</label><input id="telegram_bot_token" type="password" autocomplete="off" placeholder="اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ">
+      <div class="secret">الحالة: <span id="telegramState">...</span></div>
+      <label>معرّفات المستخدمين المسموح لهم</label><input id="allowed_telegram_users" placeholder="مثال: 123456789,987654321">
+      <div class="secret">اترك الحقل فارغًا للسماح للجميع أثناء التجربة.</div>
+    </section>
+    <section>
+      <h2>اختيار النموذج</h2>
+      <label>المزوّد الافتراضي</label><select id="provider"><option value="local">النموذج المحلي (Gemma / Qwen)</option><option value="gemini">Gemini API</option></select>
+      <label>المزوّد الاحتياطي</label><select id="fallback_provider"><option value="">بدون تحويل احتياطي</option><option value="local">النموذج المحلي</option><option value="gemini">Gemini API</option></select>
+      <label><input id="enable_web_research" type="checkbox" style="width:auto;margin-left:8px"> البحث عبر الإنترنت عند الحاجة</label>
+      <div class="secret">يستخدم بحث Google عبر Gemini ويضيف المصادر، وقد يترتب عليه تكلفة API.</div>
+    </section>
+    <section>
+      <h2>النموذج المحلي</h2>
+      <label>عنوان Ollama</label><input id="ollama_base_url">
+      <label>اختيار Gemma أو Qwen المثبت</label><select id="local_model_choice" onchange="chooseLocalModel()"><option value="">جارٍ تحميل النماذج...</option></select>
+      <label>Model ID</label><input id="ollama_model">
+      <div class="secret">يمكنك أيضًا كتابة اسم نموذج آخر يدويًا، ثم حفظ الإعدادات.</div>
+      <button type="button" onclick="testProvider('local')">اختبار النموذج المحلي</button>
+      <button type="button" class="alt" onclick="testReport('local')">اختبار إنشاء مخططات</button>
+      <div class="status" id="localResult">لم يتم الاختبار بعد</div>
+    </section>
+    <section>
+      <h2>Gemini API</h2>
+      <label>API Key</label><input id="gemini_api_key" type="password" autocomplete="off" placeholder="اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ">
+      <div class="secret">الحالة: <span id="geminiState">...</span></div>
+      <label>Model ID</label><input id="gemini_model">
+      <button type="button" onclick="testProvider('gemini')">اختبار Gemini</button>
+      <button type="button" class="alt" onclick="testReport('gemini')">اختبار إنشاء مخططات</button>
+      <div class="status" id="geminiResult">لم يتم الاختبار بعد</div>
+    </section>
+    <section class="wide">
+      <h2>التشغيل</h2>
+      <div class="actions"><button type="submit">حفظ الإعدادات</button><button type="button" class="alt" onclick="startBot()">تشغيل بوت تيليغرام</button><button type="button" onclick="startQaSuite()">تشغيل 10 اختبارات جودة محلية</button><button type="button" class="alt" onclick="retryFailedQaSuite()">إعادة اختبار الحالات الفاشلة</button></div>
+      <div class="status" id="mainResult">جاهز</div>
+    </section>
+  </div></form>
+</main>
+<script>
+const fields=['allowed_telegram_users','provider','fallback_provider','ollama_base_url','ollama_model','gemini_model'];
+async function load(){const s=await (await fetch('/api/settings')).json(); fields.forEach(k=>document.getElementById(k).value=s[k]||'');enable_web_research.checked=!!s.enable_web_research;telegramState.textContent=s.telegram_bot_token;geminiState.textContent=s.gemini_api_key;await loadLocalModels(s.ollama_model)}
+async function loadLocalModels(current){local_model_choice.innerHTML='<option value="">جارٍ تحميل النماذج...</option>';const r=await fetch('/api/models/local');const d=await r.json();if(!r.ok){local_model_choice.innerHTML='<option value="">تعذر تحميل النماذج المحلية</option>';return}local_model_choice.innerHTML='<option value="">اختر نموذجًا محليًا</option>'+d.models.map(m=>`<option value="${m.name}">${m.family} — ${m.name} (${m.size_gb} GB)</option>`).join('');local_model_choice.value=d.models.some(m=>m.name===current)?current:''}
+function chooseLocalModel(){if(local_model_choice.value)ollama_model.value=local_model_choice.value}
+settings.onsubmit=async e=>{e.preventDefault();mainResult.textContent='جارٍ الحفظ...';const body={};[...fields,'telegram_bot_token','gemini_api_key'].forEach(k=>body[k]=document.getElementById(k).value);body.enable_web_research=enable_web_research.checked;const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();mainResult.textContent=r.ok?'تم حفظ الإعدادات بأمان':'تعذر الحفظ: '+(d.detail||'خطأ');if(r.ok){telegram_bot_token.value='';gemini_api_key.value='';load()}}
+async function testProvider(p){const el=document.getElementById(p==='local'?'localResult':'geminiResult');el.textContent='جارٍ الاختبار...';const r=await fetch('/api/test/'+p,{method:'POST'});const d=await r.json();el.textContent=r.ok&&d.ok?'الاتصال ناجح: '+d.model:'فشل الاختبار: '+(d.detail||JSON.stringify(d))}
+async function testReport(p){const el=document.getElementById(p==='local'?'localResult':'geminiResult');el.textContent='جارٍ اختبار إنشاء المخططات...';const r=await fetch('/api/test/'+p+'/report',{method:'POST'});const d=await r.json();el.textContent=r.ok&&d.ok?'نجح '+d.model+': '+d.chart_count+' مخططات ('+d.chart_kinds.join('، ')+') خلال '+d.elapsed_seconds+' ثانية':'فشل الاختبار: '+(d.detail||JSON.stringify(d))}
+async function startBot(){mainResult.textContent='جارٍ التحقق من المفتاح وتشغيل البوت...';const r=await fetch('/api/bot/start',{method:'POST'});const d=await r.json();mainResult.textContent=r.ok?'تم تشغيل البوت @'+d.username+'. افتحه في تيليغرام وأرسل /start':'تعذر تشغيل البوت: '+(d.detail||'خطأ')}
+async function startQaSuite(){mainResult.textContent='جارٍ بدء اختبارات الجودة المحلية...';const r=await fetch('/api/test/local/qa-suite',{method:'POST'});const d=await r.json();if(!r.ok){mainResult.textContent='تعذر بدء الاختبارات: '+(d.detail||'خطأ');return}pollQaSuite()}
+async function retryFailedQaSuite(){mainResult.textContent='جارٍ إعادة اختبار الحالات الفاشلة...';const r=await fetch('/api/test/local/qa-suite/retry-failed',{method:'POST'});const d=await r.json();if(!r.ok){mainResult.textContent='تعذر بدء إعادة الاختبار: '+(d.detail||'خطأ');return}if(!d.running){mainResult.textContent='لا توجد حالات فاشلة في آخر جولة.';return}pollQaSuite()}
+async function pollQaSuite(){const r=await fetch('/api/test/local/qa-suite');const d=await r.json();if(d.running){mainResult.textContent=`اختبارات الجودة: ${d.current||0} من ${d.total||10} — ${d.scenario||''}`;setTimeout(pollQaSuite,3000);return}mainResult.textContent=d.error?'فشلت حزمة الاختبارات: '+d.error:`انتهت الاختبارات: نجح ${d.passed} من ${d.total}، وفشل ${d.failed}. النتائج: ${d.destination}`}
+load();
+</script>
+</body>
+</html>
