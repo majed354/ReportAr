@@ -1,0 +1,27 @@
+{
+  "name": "ReportAr",
+  "short_name": "ReportAr",
+  "description": "منصة عربية لإنشاء تقارير PDF احترافية من المسودات والملفات.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f3ed",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

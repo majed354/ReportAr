@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ReportAr">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ReportAr | منصة التقارير العربية</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <nav class="topbar" aria-label="التنقل الرئيسي">
+        <a class="brand" href="#home" aria-label="ReportAr">
+          <img src="/assets/icon.svg" alt="" width="42" height="42">
+          <span>ReportAr</span>
+        </a>
+        <div class="nav-links">
+          <a href="#new">تقرير جديد</a>
+          <a href="#identity">الهوية</a>
+          <a href="#reports">التقارير</a>
+          <a href="#settings">الإعدادات</a>
+        </div>
+        <button class="install-button" id="installButton" type="button" hidden>تثبيت التطبيق</button>
+      </nav>
+
+      <section class="hero-grid" id="home">
+        <div class="hero-copy">
+          <p class="eyebrow">من المسودة إلى PDF جاهز</p>
+          <h1>منصة عربية تصنع تقارير احترافية من أول مرة.</h1>
+          <p class="lead">
+            ارفع التقرير، اختر النمط، واترك المحرك ينظم النصوص، يراجع النقص،
+            يبني المخططات، ويخرج PDF عربيًا منسقًا عبر LaTeX.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-action" href="#new">ابدأ تقريرًا جديدًا</a>
+            <a class="secondary-action" href="#settings">ربط الخادم</a>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="ملخص حالة المنصة">
+          <div class="status-dot" id="apiStatusDot"></div>
+          <span id="apiStatusText">واجهة جاهزة للنشر</span>
+          <strong>البناء المقترح</strong>
+          <p>Netlify للواجهة، خادمك للحسابات والطابور، وجهازك المحلي للنموذج وPDF.</p>
+          <div class="mini-steps">
+            <span>واجهة PWA</span>
+            <span>API</span>
+            <span>عامل محلي</span>
+            <span>PDF</span>
+          </div>
+        </aside>
+      </section>
+    </header>
+
+    <main>
+      <section class="section cards" aria-label="ميزات المنتج">
+        <article class="feature-card">
+          <span class="feature-icon">01</span>
+          <h2>مسار سريع</h2>
+          <p>يراجع النص، يختار النمط المناسب، وينتج التقرير مباشرة عند توفر البيانات.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">02</span>
+          <h2>مسار موجه</h2>
+          <p>يسأل عن الشعار والخلفية والألوان والمصادر قبل الاعتماد النهائي.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">03</span>
+          <h2>محرك محلي</h2>
+          <p>يبقى تشغيل النموذج وبناء LaTeX على جهازك أو خادمك الخاص.</p>
+        </article>
+      </section>
+
+      <section class="panel" id="new">
+        <div class="section-heading">
+          <p class="eyebrow">طلب تقرير</p>
+          <h2>أنشئ مهمة تقرير</h2>
+          <p>هذه الواجهة تحفظ الطلب محليًا الآن، وترسله إلى الخادم عند ضبط عنوان API في الإعدادات.</p>
+        </div>
+        <form class="report-form" id="reportForm">
+          <label>
+            عنوان التقرير
+            <input name="title" required placeholder="مثال: تقرير أداء الربع الثاني">
+          </label>
+          <label>
+            مسودة التقرير أو التعليمات
+            <textarea name="reportText" required rows="9" placeholder="ألصق النص العربي هنا، أو اكتب المطلوب من التقرير..."></textarea>
+          </label>
+          <div class="form-grid">
+            <label>
+              نمط العمل
+              <select name="mode">
+                <option value="fast">المسار السريع</option>
+                <option value="guided">المسار الموجه</option>
+              </select>
+            </label>
+            <label>
+              النموذج المفضل
+              <select name="provider">
+                <option value="">اختيار تلقائي</option>
+                <option value="local">النموذج المحلي</option>
+                <option value="gemini">Gemini</option>
+              </select>
+            </label>
+            <label>
+              النمط البصري
+              <select name="theme">
+                <option value="executive-modern">تنفيذي عصري</option>
+                <option value="official-formal">رسمي مؤسسي</option>
+                <option value="academic-clean">أكاديمي هادئ</option>
+                <option value="heritage-elegant">تراثي أنيق</option>
+                <option value="data-dashboard">لوحة مؤشرات</option>
+                <option value="minimal-neutral">محايد بسيط</option>
+              </select>
+            </label>
+            <label>
+              سياسة المخططات
+              <select name="charts">
+                <option value="auto">إنشاء مخططات عند الحاجة</option>
+                <option value="required">أضف مخططات احترافية</option>
+                <option value="none">بدون مخططات</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            ملفات مرفقة
+            <input name="files" type="file" multiple accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.webp">
+            <span class="hint">في النسخة المنشورة سترفع الملفات للخادم. في المعاينة تحفظ أسماء الملفات فقط.</span>
+          </label>
+          <div class="actions-row">
+            <button class="primary-action" type="submit">إرسال الطلب</button>
+            <button class="secondary-action" type="button" id="fillDemo">تجربة نموذجية</button>
+          </div>
+        </form>
+        <div class="notice" id="submitResult" role="status">جاهز لاستقبال أول طلب.</div>
+      </section>
+
+      <section class="panel" id="identity">
+        <div class="section-heading">
+          <p class="eyebrow">هوية العميل</p>
+          <h2>احفظ نمطك الافتراضي</h2>
+          <p>الهوية هنا مبدئية للواجهة. لاحقًا تحفظ في حساب المستخدم على الخادم.</p>
+        </div>
+        <form class="identity-form" id="identityForm">
+          <div class="form-grid">
+            <label>
+              اسم الجهة
+              <input name="organization" placeholder="مثال: شركة البيان للاستشارات">
+            </label>
+            <label>
+              اللون الأساسي
+              <input name="primaryColor" type="color" value="#0f766e">
+            </label>
+            <label>
+              الشعار
+              <input name="logo" type="file" accept=".png,.jpg,.jpeg,.webp,.svg">
+            </label>
+            <label>
+              الختم أو العلامة
+              <input name="stamp" type="file" accept=".png,.jpg,.jpeg,.webp,.svg">
+            </label>
+          </div>
+          <button class="primary-action" type="submit">حفظ الهوية</button>
+        </form>
+        <div class="identity-preview" id="identityPreview">
+          <span>لم تحفظ هوية بعد.</span>
+        </div>
+      </section>
+
+      <section class="panel" id="reports">
+        <div class="section-heading">
+          <p class="eyebrow">سجل العمل</p>
+          <h2>الطلبات الأخيرة</h2>
+        </div>
+        <div class="reports-list" id="reportsList"></div>
+      </section>
+
+      <section class="panel" id="settings">
+        <div class="section-heading">
+          <p class="eyebrow">الربط</p>
+          <h2>إعداد الخادم والنشر</h2>
+          <p>لا تحفظ مفاتيح Gemini أو Telegram في هذه الواجهة العامة. مكانها لوحة التحكم المحلية أو الخادم.</p>
+        </div>
+        <form class="settings-form" id="settingsForm">
+          <label>
+            عنوان API
+            <input name="apiBaseUrl" inputmode="url" placeholder="مثال: https://api.reportar.com">
+          </label>
+          <label>
+            رمز جلسة تطوير مؤقت
+            <input name="devToken" type="password" autocomplete="off" placeholder="يستخدم للتجربة فقط وليس للإنتاج">
+            <span class="hint">في النسخة التجارية يستبدل هذا بتسجيل دخول حقيقي، لا برمز إداري داخل المتصفح.</span>
+          </label>
+          <div class="actions-row">
+            <button class="primary-action" type="submit">حفظ الإعدادات</button>
+            <button class="secondary-action" type="button" id="testApi">اختبار الاتصال</button>
+          </div>
+        </form>
+        <div class="deploy-box">
+          <h3>إعداد Netlify</h3>
+          <p>المستودع جاهز للنشر من GitHub. إعداد النشر: publish = <code>webapp</code> بدون أمر بناء.</p>
+          <p>لا تضع مفاتيح Telegram أو Gemini في Netlify لهذه الواجهة. المفاتيح تبقى في لوحة التحكم المحلية أو في الخادم الخلفي عند تجهيزه.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
